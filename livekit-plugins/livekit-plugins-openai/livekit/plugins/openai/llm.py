@@ -20,6 +20,7 @@ from typing import Any, Literal
 from urllib.parse import urlparse
 
 import httpx
+import httpx2
 
 import openai
 from livekit.agents import llm
@@ -36,6 +37,7 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 from openai.types import ReasoningEffort
 from openai.types.chat import ChatCompletionToolChoiceOptionParam, completion_create_params
 
@@ -162,12 +164,14 @@ class LLM(llm.LLM):
             api_key=api_key if is_given(api_key) else None,
             base_url=base_url if is_given(base_url) else None,
             max_retries=max_retries if is_given(max_retries) else 0,
-            http_client=httpx.AsyncClient(
-                timeout=timeout
-                if timeout
-                else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+            http_client=httpx2.AsyncClient(
+                timeout=as_httpx2_timeout(
+                    timeout
+                    if timeout
+                    else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+                ),
                 follow_redirects=True,
-                limits=httpx.Limits(
+                limits=httpx2.Limits(
                     max_connections=50,
                     max_keepalive_connections=50,
                     keepalive_expiry=120,

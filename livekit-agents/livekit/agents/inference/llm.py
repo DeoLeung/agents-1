@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 import httpx
+import httpx2
 import openai
 from openai.types.chat import (
     ChatCompletionChunk,
@@ -27,6 +28,7 @@ from ..llm.tool_context import Tool
 from ..log import logger
 from ..types import DEFAULT_API_CONNECT_OPTIONS, NOT_GIVEN, APIConnectOptions, NotGivenOr
 from ..utils import is_given
+from ..utils.httpx_compat import as_httpx2_timeout
 from ._realtime_models import is_realtime_model
 from ._utils import (
     HEADER_INFERENCE_PROVIDER,
@@ -253,10 +255,12 @@ class LLM(llm.LLM):
             api_key=create_access_token(self._opts.api_key, self._opts.api_secret),
             base_url=self._opts.base_url,
             max_retries=0,
-            http_client=httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+            http_client=httpx2.AsyncClient(
+                timeout=as_httpx2_timeout(
+                    httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+                ),
                 follow_redirects=True,
-                limits=httpx.Limits(
+                limits=httpx2.Limits(
                     max_connections=50, max_keepalive_connections=50, keepalive_expiry=120
                 ),
             ),
@@ -434,7 +438,7 @@ class LLMStream(llm.LLMStream):
                 model=self._model,
                 stream_options={"include_usage": True},
                 stream=True,
-                timeout=httpx.Timeout(self._conn_options.timeout),
+                timeout=as_httpx2_timeout(httpx.Timeout(self._conn_options.timeout)),
                 **self._extra_kwargs,
             )
 

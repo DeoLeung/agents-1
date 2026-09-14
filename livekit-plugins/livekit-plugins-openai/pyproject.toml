@@ -23,8 +23,9 @@ classifiers = [
 ]
 dependencies = [
     "livekit-agents[codecs, images]>=1.8.3",
-    # keywords/languages on the transcription APIs landed in 2.50
-    "openai>=2.50",
+    "httpx>=0.28,<1",
+    "httpx2>=2.12,<3",
+    "openai[realtime]>=3,<4",
 ]
 
 

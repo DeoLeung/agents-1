@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 import httpx
+import httpx2
 import openai as openai_api
 from openai.types import Reasoning
 
@@ -12,6 +13,7 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 from livekit.plugins import openai
 
 from ..models import PerplexityResponsesModels
@@ -32,12 +34,12 @@ def _create_client(
         base_url=base_url,
         default_headers=_ATTRIBUTION_HEADER,
         max_retries=0,
-        http_client=httpx.AsyncClient(
-            timeout=timeout
-            if timeout
-            else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+        http_client=httpx2.AsyncClient(
+            timeout=as_httpx2_timeout(
+                timeout if timeout else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+            ),
             follow_redirects=True,
-            limits=httpx.Limits(
+            limits=httpx2.Limits(
                 max_connections=50,
                 max_keepalive_connections=50,
                 keepalive_expiry=120,

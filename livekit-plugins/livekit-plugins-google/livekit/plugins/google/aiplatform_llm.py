@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import httpx
+import httpx2
 import openai
 from openai.types.chat import ChatCompletionToolChoiceOptionParam, completion_create_params
 
@@ -47,11 +48,12 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 
 ApiVersion = Literal["v1", "v1beta1"]
 
 
-class _GoogleBearerAuth(httpx.Auth):
+class _GoogleBearerAuth(httpx2.Auth):
     """httpx auth handler that injects a Google OAuth bearer token.
 
     Accepts either a static token (useful for short-lived testing) or
@@ -91,14 +93,14 @@ class _GoogleBearerAuth(httpx.Auth):
         return self._static_token or ""
 
     def sync_auth_flow(
-        self, request: httpx.Request
-    ) -> Generator[httpx.Request, httpx.Response, None]:
+        self, request: httpx2.Request
+    ) -> Generator[httpx2.Request, httpx2.Response, None]:
         request.headers["Authorization"] = f"Bearer {self._current_token()}"
         yield request
 
     async def async_auth_flow(
-        self, request: httpx.Request
-    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
+        self, request: httpx2.Request
+    ) -> AsyncGenerator[httpx2.Request, httpx2.Response]:
         request.headers["Authorization"] = f"Bearer {self._current_token()}"
         yield request
 
@@ -226,13 +228,15 @@ class AIPlatformLLM(llm.LLM):
                 api_key="ignored-auth-comes-from-httpx-auth",
                 base_url=base_url,
                 max_retries=0,
-                http_client=httpx.AsyncClient(
+                http_client=httpx2.AsyncClient(
                     auth=auth,
-                    timeout=timeout
-                    if timeout is not None
-                    else httpx.Timeout(connect=10.0, read=10.0, write=10.0, pool=5.0),
+                    timeout=as_httpx2_timeout(
+                        timeout
+                        if timeout is not None
+                        else httpx.Timeout(connect=10.0, read=10.0, write=10.0, pool=5.0)
+                    ),
                     follow_redirects=True,
-                    limits=httpx.Limits(
+                    limits=httpx2.Limits(
                         max_connections=50,
                         max_keepalive_connections=50,
                         keepalive_expiry=120,

@@ -27,6 +27,7 @@ from urllib.parse import urlencode, urlparse
 
 import aiohttp
 import httpx
+import httpx2
 from pydantic import TypeAdapter
 
 import openai
@@ -49,6 +50,7 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import AudioBuffer, is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 from openai.types.audio import Transcription, TranscriptionVerbose
 from openai.types.beta.realtime.transcription_session_update_param import (
     SessionTurnDetection,
@@ -306,10 +308,12 @@ class STT(stt.STT):
             max_retries=0,
             api_key=api_key if is_given(api_key) else None,
             base_url=base_url if is_given(base_url) else None,
-            http_client=httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+            http_client=httpx2.AsyncClient(
+                timeout=as_httpx2_timeout(
+                    httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+                ),
                 follow_redirects=True,
-                limits=httpx.Limits(
+                limits=httpx2.Limits(
                     max_connections=50,
                     max_keepalive_connections=50,
                     keepalive_expiry=120,

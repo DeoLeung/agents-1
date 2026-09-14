@@ -242,5 +242,9 @@ follow_untyped_imports = true
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = ["cv2.*", "loguru.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "livekit.plugins"
 follow_untyped_imports = true
