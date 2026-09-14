@@ -20,6 +20,7 @@ import os
 from typing import Any
 
 import httpx
+import httpx2
 import msgpack
 import openai
 from openai._models import FinalRequestOptions
@@ -32,6 +33,7 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 from livekit.plugins.openai import LLM as OpenAILLM
 
 from .models import CerebrasChatModels
@@ -62,7 +64,7 @@ class _CerebrasClient(openai.AsyncClient):
         options: FinalRequestOptions,
         *,
         retries_taken: int = 0,
-    ) -> httpx.Request:
+    ) -> httpx2.Request:
         if not (self._use_msgpack or self._use_gzip):
             return super()._build_request(options, retries_taken=retries_taken)
 
@@ -144,12 +146,14 @@ class LLM(OpenAILLM):
                 api_key=cerebras_api_key,
                 base_url=base_url if is_given(base_url) else None,
                 max_retries=max_retries if is_given(max_retries) else 0,
-                http_client=httpx.AsyncClient(
-                    timeout=timeout
-                    if timeout
-                    else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+                http_client=httpx2.AsyncClient(
+                    timeout=as_httpx2_timeout(
+                        timeout
+                        if timeout
+                        else httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+                    ),
                     follow_redirects=True,
-                    limits=httpx.Limits(
+                    limits=httpx2.Limits(
                         max_connections=50,
                         max_keepalive_connections=50,
                         keepalive_expiry=120,

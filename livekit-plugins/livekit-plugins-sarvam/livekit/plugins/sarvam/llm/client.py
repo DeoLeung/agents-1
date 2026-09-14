@@ -19,6 +19,7 @@ import platform
 from typing import Any
 
 import httpx
+import httpx2
 import openai
 from openai.types import ReasoningEffort
 
@@ -32,6 +33,7 @@ from livekit.agents.types import (
     NotGivenOr,
 )
 from livekit.agents.utils import is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 from livekit.plugins.openai.llm import LLM as OpenAILLM
 
 from .models import SarvamLLMModels
@@ -376,10 +378,10 @@ def _create_sarvam_client(
             "api-subscription-key": api_key,
             "User-Agent": USER_AGENT,
         },
-        http_client=httpx.AsyncClient(
-            timeout=httpx.Timeout(connect=15.0, read=60.0, write=5.0, pool=5.0),
+        http_client=httpx2.AsyncClient(
+            timeout=as_httpx2_timeout(httpx.Timeout(connect=15.0, read=60.0, write=5.0, pool=5.0)),
             follow_redirects=True,
-            limits=httpx.Limits(
+            limits=httpx2.Limits(
                 max_connections=50,
                 max_keepalive_connections=50,
                 keepalive_expiry=120,

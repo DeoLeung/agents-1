@@ -21,6 +21,7 @@ from dataclasses import dataclass, replace
 from typing import Literal
 
 import httpx
+import httpx2
 
 import openai
 from livekit.agents import (
@@ -32,6 +33,7 @@ from livekit.agents import (
 )
 from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS, NOT_GIVEN, NotGivenOr
 from livekit.agents.utils import aio, is_given
+from livekit.agents.utils.httpx_compat import as_httpx2_timeout
 
 from .models import TTSModels, TTSVoices
 from .utils import AsyncAzureADTokenProvider
@@ -123,10 +125,12 @@ class TTS(tts.TTS):
             max_retries=0,
             api_key=api_key if is_given(api_key) else None,
             base_url=base_url if is_given(base_url) else None,
-            http_client=httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0),
+            http_client=httpx2.AsyncClient(
+                timeout=as_httpx2_timeout(
+                    httpx.Timeout(connect=15.0, read=5.0, write=5.0, pool=5.0)
+                ),
                 follow_redirects=True,
-                limits=httpx.Limits(
+                limits=httpx2.Limits(
                     max_connections=50, max_keepalive_connections=50, keepalive_expiry=120
                 ),
             ),
@@ -267,7 +271,7 @@ class ChunkedStream(tts.ChunkedStream):
             instructions=self._opts.instructions or openai.omit,
             # `sse` is not supported for tts-1/tts-1-hd (character-based billing)
             stream_format="audio" if self._opts.model in AUDIO_STREAM_MODELS else "sse",
-            timeout=httpx.Timeout(30, connect=self._conn_options.timeout),
+            timeout=as_httpx2_timeout(httpx.Timeout(30, connect=self._conn_options.timeout)),
         )
 
         try:
